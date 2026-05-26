@@ -1,0 +1,22 @@
+# Node
+node_modules/
+dist/
+.npm/
+*.log
+
+# Env / local config
+.env
+.env.*
+config.env.local
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Docker tarballs
+*.tar
+
+# Remote server connection documentation (contains sensitive info)
+REMOTE_SERVER.md
