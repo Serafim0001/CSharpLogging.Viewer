@@ -15,6 +15,7 @@ ARG APP_PORT=7002
 ENV NODE_ENV=production
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/server.js ./server.js
+COPY --from=build /app/logQuery.js ./logQuery.js
 COPY --from=build /app/config.env ./config.env
 COPY --from=build /app/dist ./dist
 EXPOSE ${APP_PORT}
