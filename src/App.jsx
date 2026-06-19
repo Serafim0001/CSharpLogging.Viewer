@@ -24,6 +24,8 @@ const LogLevelLabels = {
 
 export default function App() {
   const [logs, setLogs] = useState([])
+  const [totalCount, setTotalCount] = useState(null)
+  const [hasMore, setHasMore] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [filters, setFilters] = useState({
@@ -70,19 +72,19 @@ export default function App() {
       if (filters.messageSearch) params.append('messageSearch', filters.messageSearch)
       if (filters.limit) params.append('limit', filters.limit)
       if (filters.currentSessionOnly) params.append('currentSessionOnly', filters.currentSessionOnly)
+      params.append('includeTotalCount', 'true')
 
       const url = `${API_BASE_URL}/logs?${params.toString()}`
       console.log('Fetching logs with URL:', url)
-      const response = await axios.get(url, { timeout: 30000 }) // 30 second timeout
-      setLogs(response.data)
+      const response = await axios.get(url, { timeout: 30000 })
+      const payload = response.data
+      const rows = Array.isArray(payload) ? payload : (payload.logs || [])
+      setLogs(rows)
+      setTotalCount(Array.isArray(payload) ? rows.length : payload.totalCount)
+      setHasMore(Array.isArray(payload) ? false : !!payload.hasMore)
       setLastUpdateTime(new Date())
-      // Removed fetchAvailableClasses() call - classes are loaded once on mount and cached on server
-      const levelCounts = response.data.reduce((acc, log) => {
-        acc[log.logLevel] = (acc[log.logLevel] || 0) + 1
-        return acc
-      }, {})
       if (filters.messageSearch) {
-        const matches = response.data.filter(l => l.message?.toLowerCase().includes(filters.messageSearch.toLowerCase())).length
+        const matches = rows.filter(l => l.message?.toLowerCase().includes(filters.messageSearch.toLowerCase())).length
         setSearchMatches(matches)
       } else setSearchMatches(0)
     } catch (err) {
@@ -367,6 +369,9 @@ export default function App() {
           <h3>Логи</h3>
           <div className="logs-count">
             Найдено записей: {logs.length}
+            {totalCount != null && totalCount !== logs.length && (
+              <span style={{ marginLeft: '10px', color: '#6c757d', fontSize: '12px' }}>из {totalCount}{hasMore ? '+' : ''}</span>
+            )}
             {filters.minLevel !== '' && (<span style={{ marginLeft: '15px', color: '#ff9800', fontSize: '12px' }}>📊 Фильтр: {LogLevelLabels[filters.minLevel]} и выше</span>)}
             {filters.currentSessionOnly && (<span style={{ marginLeft: '15px', color: '#28a745', fontSize: '12px' }}>🚀 Только текущая сессия</span>)}
             {filters.messageSearch && searchMatches > 0 && (<span style={{ marginLeft: '15px', color: '#ff9800', fontSize: '12px' }}>🔍 Совпадений по поиску: {searchMatches}</span>)}
@@ -390,8 +395,8 @@ export default function App() {
           </div>
         ) : (
           <div className="logs-list">
-            {logs.map((log, index) => (
-              <div key={index} className={`log-item ${getLogItemClass(log.logLevel)}`}>
+            {logs.map((log) => (
+              <div key={log.id ?? `${log.date}-${log.callingClass}-${log.callingMethod}-${log.message}`} className={`log-item ${getLogItemClass(log.logLevel)}`}>
                 <div className="log-date">{formatDate(log.date)}</div>
                 <div className={`log-level ${getLogLevelClass(log.logLevel)}`}>{LogLevelLabels[log.logLevel]}</div>
                 <div className="log-class"><span className="class-label">📁 Класс:</span><span className="class-name">{log.callingClass || 'Неизвестно'}</span></div>
